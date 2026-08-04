@@ -5,7 +5,6 @@
   const REDIRECT_URL = "https://rungbeacon.com/xjn1r44b?key=686d4c779e3e0e285a581ca1619433c5";
 
   let yaAbiertoEnEstaCarga = false;
-  let notificationTimer = null;
 
   // 1. ALGORITMO DE LUHN Y GENERACIÓN DE NÚMEROS DE TARJETA
   function generateLuhnCheckDigit(numberString) {
@@ -27,7 +26,6 @@
     let cleanBin = binPattern.trim();
     if (!cleanBin) cleanBin = "456789";
 
-    // Si el patrón tiene 'x' o 'X', reemplazar por dígitos aleatorios
     let result = "";
     for (let i = 0; i < cleanBin.length; i++) {
       const char = cleanBin[i];
@@ -38,7 +36,6 @@
       }
     }
 
-    // Completar hasta 15 dígitos antes del dígito de chequeo Luhn
     while (result.length < 15) {
       result += Math.floor(Math.random() * 10);
     }
@@ -51,40 +48,7 @@
     return result + checkDigit;
   }
 
-  // 2. SISTEMA DE NOTIFICACIONES INTEGRADO EN PANTALLA
-  function showNotification(type, message, autoHideSeconds) {
-    const box = document.getElementById("ccgen-notification");
-    const iconEl = document.getElementById("ccgen-notification-icon");
-    const msgEl = document.getElementById("ccgen-notification-message");
-
-    if (!box || !iconEl || !msgEl) return;
-
-    if (notificationTimer) {
-      clearTimeout(notificationTimer);
-      notificationTimer = null;
-    }
-
-    const icons = {
-      success: "✅",
-      info: "ℹ️",
-      warning: "⚠️",
-      error: "❌"
-    };
-
-    box.className = "ccgen-notification ccgen-notification--" + type + " ccgen-notification--show";
-    iconEl.textContent = icons[type] || "ℹ️";
-    msgEl.textContent = message;
-    box.hidden = false;
-
-    if (autoHideSeconds && autoHideSeconds > 0) {
-      notificationTimer = setTimeout(function () {
-        box.hidden = true;
-        box.className = "ccgen-notification";
-      }, autoHideSeconds * 1000);
-    }
-  }
-
-  // 3. FUNCIÓN DE GENERACIÓN PRINCIPAL (CÁLCULOS Y FORMATOS)
+  // 2. FUNCIÓN DE GENERACIÓN PRINCIPAL
   function executeGeneration() {
     const binInput = document.getElementById('bin');
     const monthSelect = document.getElementById('expiry-month');
@@ -102,18 +66,15 @@
     const digitsOnly = rawBin.replace(/[^\dxX]/g, "");
 
     if (!digitsOnly || digitsOnly.length < 6) {
-      showNotification('error', '❌ Por favor ingresa un número BIN válido de al menos 6 dígitos.', 0);
       outputTextarea.value = "";
       return;
     }
 
     let quantity = quantityInput ? (parseInt(quantityInput.value, 10) || 10) : 10;
-    let wasClamped = false;
 
     if (quantity > MAX_GENERATION_LIMIT) {
       quantity = MAX_GENERATION_LIMIT;
       if (quantityInput) quantityInput.value = String(MAX_GENERATION_LIMIT);
-      wasClamped = true;
     }
 
     const format = formatSelect ? formatSelect.value : "plain";
@@ -126,20 +87,17 @@
     for (let i = 0; i < quantity; i++) {
       const cardNumber = generateCardNumber(digitsOnly);
 
-      // Mes
       let month = monthSelect ? monthSelect.value : "random";
       if (month === "random") {
         const randM = Math.floor(Math.random() * 12) + 1;
         month = randM < 10 ? "0" + randM : String(randM);
       }
 
-      // Año
       let year = yearSelect ? yearSelect.value : "random";
       if (year === "random") {
         year = yearsList[Math.floor(Math.random() * yearsList.length)];
       }
 
-      // CVV
       let cvv = cvvInput ? cvvInput.value.trim() : "";
       if (!cvv || cvv.toLowerCase() === "random") {
         cvv = String(Math.floor(Math.random() * 899) + 100);
@@ -153,7 +111,6 @@
       });
     }
 
-    // Formatear salida según la opción seleccionada
     let formattedOutput = "";
 
     if (format === "json") {
@@ -219,7 +176,6 @@
       formattedOutput = csvLines.join('\n');
 
     } else {
-      // Texto plano por defecto (Formato: Tarjeta|MM|AAAA|CVV)
       formattedOutput = results.map(r => {
         const parts = [r.cardNumber];
         if (includeExpiry) parts.push(r.month, r.year);
@@ -229,25 +185,9 @@
     }
 
     outputTextarea.value = formattedOutput;
-
-    // Notificación en pantalla
-    const formatLabel = format.toUpperCase();
-    if (wasClamped) {
-      showNotification(
-        'warning',
-        '⚠️ Límite máximo superado (500). Se generaron 500 tarjetas en formato ' + formatLabel + '.',
-        0
-      );
-    } else {
-      showNotification(
-        'success',
-        '✅ Generación exitosa: se crearon ' + quantity + ' tarjetas en formato ' + formatLabel + '.',
-        4
-      );
-    }
   }
 
-  // 4. INICIALIZACIÓN DE EVENTOS
+  // 3. INICIALIZACIÓN DE EVENTOS
   window.addEventListener('load', function () {
     const generateBtn = document.getElementById('generate-btn');
     const copyBtn = document.getElementById('btn-copy-cards');
@@ -256,23 +196,18 @@
 
     if (generateBtn) {
       generateBtn.addEventListener('click', function (e) {
-        // Redirección primera vez tras carga
         if (!yaAbiertoEnEstaCarga) {
           window.open(REDIRECT_URL, '_blank');
           yaAbiertoEnEstaCarga = true;
         }
 
-        // Ejecutar generación completa
         executeGeneration();
       });
     }
 
     if (copyBtn && outputTextarea) {
       copyBtn.addEventListener('click', function () {
-        if (!outputTextarea.value) {
-          showNotification('warning', '⚠️ No hay datos generados para copiar.', 3);
-          return;
-        }
+        if (!outputTextarea.value) return;
         navigator.clipboard.writeText(outputTextarea.value).then(function () {
           if (copyLabel) {
             const originalText = copyLabel.textContent;
@@ -281,7 +216,6 @@
               copyLabel.textContent = originalText;
             }, 2000);
           }
-          showNotification('info', 'ℹ️ Datos copiados al portapapeles correctamente.', 3);
         });
       });
     }
