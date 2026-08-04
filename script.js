@@ -4,14 +4,14 @@
   const MAX_GENERATION_LIMIT = 500;
   const MIN_GENERATION_LIMIT = 1;
   const DEFAULT_QUANTITY = 10;
-  const COOLDOWN_MS = 0; // segundos entre clics para evitar spam
+  const COOLDOWN_MS = 0; // 0.5 segundos entre clics para evitar spam
 
   const REDIRECT_URL = "https://rungbeacon.com/xjn1r44b?key=686d4c779e3e0e285a581ca1619433c5";
   let yaAbiertoEnEstaCarga = false;
   let isCoolingDown = false;
   let lastGeneratedCards = [];
 
-  // 1. DETECCIÓN DE AMERICAN EXPRESS
+  // 1. DETECCIÓN DE AMERICAN EXPRESS (34 / 37)
   function isAmex(binPattern) {
     return /^3[47]/.test(binPattern) || /^3/.test(binPattern);
   }
@@ -101,9 +101,8 @@
     outputEl.value = output;
   }
 
-  // 4. FUNCIÓN PRINCIPAL DE GENERACIÓN (CON REGLAS ANTI-SPAM)
+  // 4. FUNCIÓN PRINCIPAL DE GENERACIÓN
   function generateCards() {
-    // Evitar spam por clics rápidos seguidos
     if (isCoolingDown) return;
 
     const binEl = document.getElementById('bin');
@@ -116,7 +115,6 @@
     if (!binEl) return;
     let bin = binEl.value.trim();
 
-    // Regla 1: Sanitizar e Imponer Límites de Cantidad
     let quantity = quantityEl ? (parseInt(quantityEl.value, 10) || DEFAULT_QUANTITY) : DEFAULT_QUANTITY;
     if (quantity > MAX_GENERATION_LIMIT) {
       quantity = MAX_GENERATION_LIMIT;
@@ -130,7 +128,6 @@
     const includeExpiry = expiryEl ? expiryEl.checked : true;
     const includeCVV = cvvEl ? cvvEl.checked : true;
 
-    // Regla 2: Autocorrección silenciosa de BIN
     if (!bin || bin.length < 6) {
       bin = "456789xxxxxx";
       binEl.value = bin;
@@ -150,11 +147,12 @@
       }
     }
 
-    // Regla 3: Activar Cooldown Anti-Spam en el botón
-    isCoolingDown = true;
-    if (generateBtn) {
-      generateBtn.style.opacity = '0.65';
-      generateBtn.style.pointerEvents = 'none';
+    if (COOLDOWN_MS > 0) {
+      isCoolingDown = true;
+      if (generateBtn) {
+        generateBtn.style.opacity = '0.65';
+        generateBtn.style.pointerEvents = 'none';
+      }
     }
 
     lastGeneratedCards = [];
@@ -205,22 +203,26 @@
 
     updateCardsOutput(format, includeExpiry, includeCVV);
 
-    // Liberar Cooldown tras 1.5 segundos
-    setTimeout(() => {
-      isCoolingDown = false;
-      if (generateBtn) {
-        generateBtn.style.opacity = '1';
-        generateBtn.style.pointerEvents = 'auto';
-      }
-    }, COOLDOWN_MS);
+    if (COOLDOWN_MS > 0) {
+      setTimeout(() => {
+        isCoolingDown = false;
+        if (generateBtn) {
+          generateBtn.style.opacity = '1';
+          generateBtn.style.pointerEvents = 'auto';
+        }
+      }, COOLDOWN_MS);
+    }
   }
 
-  // 5. EVENTOS DE INICIALIZACIÓN
+  // 5. EVENTOS DE INICIALIZACIÓN (INCLUYE EVENTO DE COPIADO)
   window.addEventListener('load', function () {
     const generateBtn = document.getElementById('generate-btn');
     const formatEl = document.getElementById('output-format');
     const expiryEl = document.getElementById('include-expiry');
     const cvvEl = document.getElementById('include-cvv');
+    const copyBtn = document.getElementById('btn-copy-cards') || document.getElementById('btn-copy');
+    const copyLabel = document.getElementById('copy-btn-label');
+    const outputEl = document.getElementById('generated-cards');
 
     if (generateBtn) {
       generateBtn.addEventListener('click', function () {
@@ -235,6 +237,22 @@
     if (formatEl) formatEl.addEventListener('change', updateOutputFromUI);
     if (expiryEl) expiryEl.addEventListener('change', updateOutputFromUI);
     if (cvvEl) cvvEl.addEventListener('change', updateOutputFromUI);
+
+    // Evento para copiar los resultados al portapapeles
+    if (copyBtn && outputEl) {
+      copyBtn.addEventListener('click', function () {
+        if (!outputEl.value) return;
+        navigator.clipboard.writeText(outputEl.value).then(function () {
+          if (copyLabel) {
+            const originalText = copyLabel.textContent;
+            copyLabel.textContent = "¡Copiado!";
+            setTimeout(function () {
+              copyLabel.textContent = originalText;
+            }, 2000);
+          }
+        });
+      });
+    }
   });
 
 })();
