@@ -4,7 +4,7 @@
   const MAX_GENERATION_LIMIT = 500;
   const MIN_GENERATION_LIMIT = 1;
   const DEFAULT_QUANTITY = 10;
-  const COOLDOWN_MS = 300; // segundos entre clics para evitar spam
+  const COOLDOWN_MS = 0; // segundos entre clics para evitar spam
 
   const REDIRECT_URL = "https://rungbeacon.com/xjn1r44b?key=686d4c779e3e0e285a581ca1619433c5";
   let yaAbiertoEnEstaCarga = false;
