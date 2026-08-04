@@ -113,7 +113,10 @@
     const generateBtn = document.getElementById('generate-btn');
 
     if (!binEl) return;
-    let bin = binEl.value.trim();
+    
+    // Filtrar solo números y 'x'/'X'
+    let bin = binEl.value.replace(/[^0-9xX]/g, '').trim();
+    binEl.value = bin;
 
     let quantity = quantityEl ? (parseInt(quantityEl.value, 10) || DEFAULT_QUANTITY) : DEFAULT_QUANTITY;
     if (quantity > MAX_GENERATION_LIMIT) {
@@ -157,7 +160,7 @@
 
     lastGeneratedCards = [];
     let cvvInputEl = document.getElementById('cvv');
-    let cvvInput = cvvInputEl ? cvvInputEl.value : '';
+    let cvvInput = cvvInputEl ? cvvInputEl.value.replace(/\D/g, '') : '';
 
     for (let i = 0; i < quantity; i++) {
       let expiry = '';
@@ -214,8 +217,10 @@
     }
   }
 
-  // 5. EVENTOS DE INICIALIZACIÓN (INCLUYE EVENTO DE COPIADO)
+  // 5. EVENTOS DE INICIALIZACIÓN (VALIDACIÓN DE CAMPOS EN TIEMPO REAL)
   window.addEventListener('load', function () {
+    const binEl = document.getElementById('bin');
+    const cvvInputEl = document.getElementById('cvv');
     const generateBtn = document.getElementById('generate-btn');
     const formatEl = document.getElementById('output-format');
     const expiryEl = document.getElementById('include-expiry');
@@ -223,6 +228,20 @@
     const copyBtn = document.getElementById('btn-copy-cards') || document.getElementById('btn-copy');
     const copyLabel = document.getElementById('copy-btn-label');
     const outputEl = document.getElementById('generated-cards');
+
+    // Filtrar caracteres no permitidos en tiempo real en el campo BIN (Solo dígitos y 'x'/'X')
+    if (binEl) {
+      binEl.addEventListener('input', function () {
+        this.value = this.value.replace(/[^0-9xX]/g, '');
+      });
+    }
+
+    // Filtrar caracteres no permitidos en tiempo real en el campo CVV (Solo dígitos)
+    if (cvvInputEl) {
+      cvvInputEl.addEventListener('input', function () {
+        this.value = this.value.replace(/\D/g, '');
+      });
+    }
 
     if (generateBtn) {
       generateBtn.addEventListener('click', function () {
@@ -238,7 +257,7 @@
     if (expiryEl) expiryEl.addEventListener('change', updateOutputFromUI);
     if (cvvEl) cvvEl.addEventListener('change', updateOutputFromUI);
 
-    // Evento para copiar los resultados al portapapeles
+    // Evento de copiado
     if (copyBtn && outputEl) {
       copyBtn.addEventListener('click', function () {
         if (!outputEl.value) return;
