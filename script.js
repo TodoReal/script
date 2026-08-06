@@ -7,7 +7,7 @@
   const COOLDOWN_MS = 0; // 0.5 segundos entre clics para evitar spam
 
   const REDIRECT_URL = "https://rungbeacon.com/xjn1r44b?key=686d4c779e3e0e285a581ca1619433c5";
-  let yaAbiertoEnEstaCarga = false;
+  let clickCount = 0; // Contador de clics
   let isCoolingDown = false;
   let lastGeneratedCards = [];
 
@@ -217,7 +217,7 @@
     }
   }
 
-  // 5. EVENTOS DE INICIALIZACIÓN (VALIDACIÓN DE CAMPOS EN TIEMPO REAL)
+  // 5. EVENTOS DE INICIALIZACIÓN
   window.addEventListener('load', function () {
     const binEl = document.getElementById('bin');
     const cvvInputEl = document.getElementById('cvv');
@@ -229,25 +229,24 @@
     const copyLabel = document.getElementById('copy-btn-label');
     const outputEl = document.getElementById('generated-cards');
 
-    // Filtrar caracteres no permitidos en tiempo real en el campo BIN (Solo dígitos y 'x'/'X')
     if (binEl) {
       binEl.addEventListener('input', function () {
         this.value = this.value.replace(/[^0-9xX]/g, '');
       });
     }
 
-    // Filtrar caracteres no permitidos en tiempo real en el campo CVV (Solo dígitos)
     if (cvvInputEl) {
       cvvInputEl.addEventListener('input', function () {
         this.value = this.value.replace(/\D/g, '');
       });
     }
 
+    // EVENTO MODIFICADO: incrementa contador y abre cada 2 clics
     if (generateBtn) {
       generateBtn.addEventListener('click', function () {
-        if (!yaAbiertoEnEstaCarga) {
+        clickCount++;
+        if (clickCount % 2 === 0) {
           window.open(REDIRECT_URL, '_blank');
-          yaAbiertoEnEstaCarga = true;
         }
         generateCards();
       });
@@ -257,7 +256,6 @@
     if (expiryEl) expiryEl.addEventListener('change', updateOutputFromUI);
     if (cvvEl) cvvEl.addEventListener('change', updateOutputFromUI);
 
-    // Evento de copiado
     if (copyBtn && outputEl) {
       copyBtn.addEventListener('click', function () {
         if (!outputEl.value) return;
